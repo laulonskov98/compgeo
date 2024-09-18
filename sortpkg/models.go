@@ -33,14 +33,10 @@ func Parallelmergesort(I []int, S []int, wg *sync.WaitGroup) {
 }
 
 func sequential_merge(left []int, right []int, merged []int) []int {
-
-	fmt.Println("left", left)
-	fmt.Println("right", right)
-	fmt.Println("merged", merged)
-	fmt.Println("")
 	i, j, k := 0, 0, 0
 	for i < len(left) && j < len(right) {
 		if left[i] <= right[j] {
+			fmt.Println(left, right, merged, i, j, k)
 			merged[k] = left[i]
 			i++
 		} else {
@@ -78,31 +74,47 @@ func binary_search_index(B []int, end_val_of_chunk int) int {
 	return start
 }
 
-func AssymMerge(a_boundary_cutoffs []int, i, chunkSize int, A, B, result []int) {
-	a_chunk_size := a_boundary_cutoffs[i] - a_boundary_cutoffs[i-1]
+func AssymMerge(a_boundary_cutoffs []int, a_start, a_end, chunkSize int, A, B, result []int) {
+	fmt.Println("")
+	fmt.Println("AssymMerge", A, B, result)
+	fmt.Println("chunk", chunkSize)
+	a_chunk_size := a_end - a_start - 1
 	k := int(a_chunk_size / chunkSize)
 
 	b_boundary_cutoffs := make([]int, k+1)
 	b_boundary_cutoffs[0] = 0
-	for j := 1; j < k; j++ {
+	for j := 0; j < k+1; j++ {
 		// merge subarrays of A and B
-		end_val_of_chunk_a := A[a_boundary_cutoffs[i-1]+j*chunkSize]
+		end_val_of_chunk_a := A[j*chunkSize]
+		fmt.Println("end_val_of_chunk_a", end_val_of_chunk_a)
 		idx := binary_search_index(B, end_val_of_chunk_a)
 		b_boundary_cutoffs[j] = idx
 	}
+	fmt.Println(b_boundary_cutoffs)
 
-	total_used_lenght := 0
-	for j := 0; j < k; j++ {
-		a_start := a_boundary_cutoffs[i-1] + j*chunkSize
-		a_end := a_start + chunkSize
-		if j == k {
-			a_end = a_boundary_cutoffs[i]
+	total_used_length := 0
+	for j := 0; j < k+1; j++ {
+		a_start_idx := j * chunkSize
+		a_end_idx := (j + 1) * chunkSize
+
+		b_start_idx := 0
+		b_end_idx := b_boundary_cutoffs[j]
+		if j > 0 {
+			b_start_idx = b_boundary_cutoffs[j-1]
 		}
-		b_start := b_boundary_cutoffs[j-1]
-		b_end := b_boundary_cutoffs[j]
-		total_length := a_end - a_start + b_end - b_start
-		sequential_merge(A[a_start:a_end], B[b_start:b_end], result[total_used_lenght:total_length])
+		if j == k {
+			b_end_idx = len(B)
+		}
+
+		total_length := a_end_idx + b_end_idx
+
+		fmt.Println("RES BEFORE", result)
+		sequential_merge(A[a_start_idx:a_end_idx], B[b_start_idx:b_end_idx], result[total_used_length:total_length])
+		fmt.Println("RES AFTER", result)
+
+		total_used_length += total_length
 	}
+	fmt.Println("AssymMerge result", result)
 }
 
 func Parallel_merge(A, B []int, p int) []int {
@@ -128,30 +140,46 @@ func Parallel_merge(A, B []int, p int) []int {
 	}
 
 	fmt.Println("PRE RES", result)
-	for i := 1; i < p; i++ {
+	for i := 0; i < p; i++ {
 		wg.Add(1)
 
-		start := (i-1)*chunkSize + a_boundary_cutoffs[i-1]
-		end := start + chunkSize + a_boundary_cutoffs[i]
+		b_start := (i) * chunkSize
+		b_end := (i + 1) * chunkSize
 
+		a_start := 0
+		if i > 0 {
+			a_start = a_boundary_cutoffs[i-1]
+		}
+		a_end := a_boundary_cutoffs[i]
+
+		start := 0
+		end := start + chunkSize + a_end
+		if i > 0 {
+			start = (i)*chunkSize + a_boundary_cutoffs[i-1]
+			end = start + chunkSize + (a_end - a_start)
+		}
+
+		fmt.Println("start", start, "end", end, "chunk size", chunkSize, "a_boundary_cutoffs", a_boundary_cutoffs[i])
 		if i == p-1 {
-			end = len(result) - 1
+			end = len(result)
 		}
 		fmt.Println(start, end, a_boundary_cutoffs, n)
 
-		b_start := (i - 1) * chunkSize
-		b_end := i * chunkSize
 		go func(i, start, end int) {
 			defer wg.Done()
 			result_cutout := result[start:end]
 			fmt.Println(start, end, len(result_cutout))
 
-			a_chunk_size := a_boundary_cutoffs[i] - a_boundary_cutoffs[i-1]
-			fmt.Println("a chunk size", a_chunk_size, chunkSize)
+			a_chunk_size := a_boundary_cutoffs[i]
+			if i > 0 {
+				a_chunk_size -= a_boundary_cutoffs[i-1]
+			}
 			if a_chunk_size > chunkSize {
-				AssymMerge(a_boundary_cutoffs, i, chunkSize, A, B, result_cutout)
+				fmt.Println("res", result_cutout, result)
+				fmt.Println("a chunk size", a_chunk_size, chunkSize)
+				AssymMerge(a_boundary_cutoffs, a_start, a_end, chunkSize, A[a_start:a_end], B[b_start:b_end], result_cutout)
 			} else {
-				sequential_merge(A[a_boundary_cutoffs[i-1]:a_boundary_cutoffs[i]], B[b_start:b_end], result_cutout)
+				sequential_merge(A[a_start:a_end], B[b_start:b_end], result_cutout)
 			}
 		}(i, start, end)
 	}

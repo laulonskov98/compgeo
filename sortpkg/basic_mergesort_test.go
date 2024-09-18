@@ -76,6 +76,7 @@ func TestParallelMergeSort(t *testing.T) {
 	wg.Add(1)
 	// call the parallel merge sort
 	Parallelmergesort(I, S, &wg)
+	fmt.Println("ASDf")
 
 	// test if I is sorted
 	for i := 1; i < n; i++ {
@@ -97,6 +98,30 @@ func TestParallelMerge(t *testing.T) {
 
 	// Print the result
 	fmt.Println("Merged array:", result)
+	for i := 0; i < len(result); i++ {
+		if i+1 != result[i] {
+			t.Errorf("Array not sorted")
+		}
+	}
+}
+
+func TestParallelMergeUneven(t *testing.T) {
+	A := []int{1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15, 17}
+	B := []int{0, 8, 10, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27}
+
+	// Number of processors (goroutines) to use
+	p := 4
+
+	// Perform the parallel merge
+	result := Parallel_merge(A, B, p)
+
+	// Print the result
+	fmt.Println("Merged array:", result)
+	for i := 0; i < len(result); i++ {
+		if i+1 != result[i] {
+			t.Errorf("Array not sorted")
+		}
+	}
 }
 
 func TestBinarySearch(t *testing.T) {
