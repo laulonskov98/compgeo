@@ -93,8 +93,10 @@ func TestParallelMerge(t *testing.T) {
 	// Number of processors (goroutines) to use
 	p := 4
 
+	result_array := make([]int, len(A)+len(B))
+
 	// Perform the parallel merge
-	result := Parallel_merge(A, B, p)
+	result := Parallel_merge(A, B, result_array, p)
 
 	// Print the result
 	fmt.Println("Merged array:", result)
@@ -112,14 +114,17 @@ func TestParallelMergeUneven(t *testing.T) {
 	// Number of processors (goroutines) to use
 	p := 4
 
+	result_array := make([]int, len(A)+len(B))
+
 	// Perform the parallel merge
-	result := Parallel_merge(A, B, p)
+	result := Parallel_merge(A, B, result_array, p)
 
 	// Print the result
 	fmt.Println("Merged array:", result)
 	for i := 0; i < len(result); i++ {
-		if i+1 != result[i] {
-			t.Errorf("Array not sorted")
+		if i != result[i] {
+			t.Errorf("Array not sorted {i: %d, result[i]: %d}", i, result[i])
+
 		}
 	}
 }
