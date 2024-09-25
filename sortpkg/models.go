@@ -5,6 +5,36 @@ import (
 	"sync"
 )
 
+func Basic_Parallel_mergesort(I []int, S []int, wg *sync.WaitGroup, depth, max_depth int) {
+	defer wg.Done()
+
+	if len(I) <= 1 {
+		copy(S, I)
+		return
+	}
+	mid := len(I) / 2
+	I_left := I[:mid]
+	I_right := I[mid:]
+	S_left := S[:mid]
+	S_right := S[mid:]
+	var childWg sync.WaitGroup
+	if depth < max_depth {
+		childWg.Add(1)
+
+		go func() {
+			Basic_Parallel_mergesort(I_left, S_left, &childWg, depth+1, max_depth)
+		}()
+
+		childWg.Wait()
+	} else {
+		Basic_Parallel_mergesort(I_left, S_left, &childWg, depth+1, max_depth)
+		Basic_Parallel_mergesort(I_right, S_right, &childWg, depth+1, max_depth)
+	}
+
+	merged := sequential_merge(S_left, S_right, I)
+	copy(S, merged)
+}
+
 func Parallelmergesort(I []int, S []int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -36,11 +66,9 @@ func sequential_merge(left []int, right []int, merged []int) []int {
 	i, j, k := 0, 0, 0
 	for i < len(left) && j < len(right) {
 		if left[i] <= right[j] {
-			fmt.Println(left, right, merged, i, j, k)
 			merged[k] = left[i]
 			i++
 		} else {
-			fmt.Println(left, right, merged, i, j, k)
 			merged[k] = right[j]
 			j++
 		}

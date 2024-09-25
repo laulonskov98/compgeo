@@ -19,7 +19,7 @@ func main() {
 	wg.Add(1)
 
 	// Call the parallel merge sort
-	go sortpkg.Parallelmergesort(arr, scratch, &wg)
+	sortpkg.Basic_Parallel_mergesort(arr, scratch, &wg, 0, 2)
 
 	// Wait for the sorting to finish
 	wg.Wait()

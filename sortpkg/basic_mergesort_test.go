@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 )
 
 // TestSequentialMerge tests the sequential merge function
@@ -63,7 +64,7 @@ func TestSequentialMerge(t *testing.T) {
 
 func TestParallelMergeSort(t *testing.T) {
 	// get n random numbers
-	n := 1000
+	n := 100
 	I := make([]int, n)
 	for i := 0; i < n; i++ {
 		I[i] = rand.Intn(n)
@@ -75,15 +76,48 @@ func TestParallelMergeSort(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	// call the parallel merge sort
-	Parallelmergesort(I, S, &wg)
-	fmt.Println("ASDf")
+	Basic_Parallel_mergesort(I, S, &wg, 0, 2)
 
-	// test if I is sorted
 	for i := 1; i < n; i++ {
-		if I[i-1] >= I[i] {
+		if I[i-1] > I[i] {
 			t.Errorf("Array not sorted")
+			fmt.Println(I[i-1], I[i])
 		}
 	}
+}
+
+func TestTimeTakingBasicParallelMergeSort(t *testing.T) {
+	recorded_times := make([][]int64, 10)
+	for max_depth := 1; max_depth < 10; max_depth++ {
+		sub_recorded_times := make([]int64, 10)
+		for i := 0; i < 10; i++ {
+			// get n random numbers
+			n := 100
+			I := make([]int, n)
+			for i := 0; i < n; i++ {
+				I[i] = rand.Intn(n)
+			}
+
+			// create scratch space
+			S := make([]int, n)
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			// call the parallel merge sort
+			now := time.Now()
+			Basic_Parallel_mergesort(I, S, &wg, 0, max_depth)
+			sub_recorded_times[i-1] = time.Since(now).Nanoseconds()
+			for i := 1; i < n; i++ {
+				if I[i-1] > I[i] {
+					t.Errorf("Array not sorted")
+					fmt.Println(I[i-1], I[i])
+				}
+			}
+		}
+		recorded_times[max_depth-1] = sub_recorded_times
+
+	}
+	fmt.Println("Recorded times:", recorded_times)
 }
 
 func TestParallelMerge(t *testing.T) {
