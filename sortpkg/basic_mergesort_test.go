@@ -25,7 +25,7 @@ func TestSequentialMerge(t *testing.T) {
 
 	// merge the two arrays
 	merged := make([]int, n+m)
-	merged = sequential_merge(left, right, merged)
+	merged = Sequential_merge(left, right, merged)
 
 	// test if all numbers from left and right occur in merged
 	for i := 0; i < n; i++ {
@@ -64,24 +64,79 @@ func TestSequentialMerge(t *testing.T) {
 
 func TestParallelMergeSort(t *testing.T) {
 	// get n random numbers
-	n := 100
+	n := 800000
 	I := make([]int, n)
 	for i := 0; i < n; i++ {
 		I[i] = rand.Intn(n)
 	}
+	I_copy := make([]int, n)
+	copy(I_copy, I)
+
+	counts_of_expected_elements := make(map[int]int)
+	for i := 0; i < n; i++ {
+		counts_of_expected_elements[I[i]]++
+	}
 
 	// create scratch space
 	S := make([]int, n)
+	S_Copy := make([]int, n)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	start := time.Now()
+	resultCh := make(chan int, 1)
+	Basic_Parallel_Mergesort_comparisons(I_copy, S_Copy, 0, 4, resultCh)
+	res := <-resultCh
+	close(resultCh)
+
+	fmt.Println("max compares basic", res)
+
+	fmt.Println("Basic parallel sort took:", time.Since(start))
+
 	// call the parallel merge sort
-	Basic_Parallel_mergesort(I, S, &wg, 0, 2)
-
+	para_start := time.Now()
+	resultCh = make(chan int, 1)
+	Parallel_Mergesort_comparisons(I, S, 0, 3, resultCh, 2)
+	res = <-resultCh
+	fmt.Println("max compares parallel", res)
+	fmt.Println("Parallel sort took:", time.Since(para_start))
+	// test if I is sorted
 	for i := 1; i < n; i++ {
-		if I[i-1] > I[i] {
+		if S[i-1] > S[i] {
+			t.Errorf("Array not sorted {i-1: %d, i: %d}", I[i-1], I[i])
+		}
+	}
+
+	counts_of_result_elements := make(map[int]int)
+	for i := 0; i < n; i++ {
+		counts_of_result_elements[S[i]]++
+	}
+
+	// iterate k,v pairs of the expected elements
+	for k, v := range counts_of_expected_elements {
+		// check if the element is in the result
+		if counts_of_result_elements[k] != v {
+			t.Errorf("Element %d not found in result", k)
+		}
+	}
+
+}
+
+func TestAssymMerge(t *testing.T) {
+	A := []int{34, 39, 53}
+	B := []int{37, 55}
+	res_array := []int{34, 37, 39, 53, 55}
+
+	// Number of processors (goroutines) to use
+
+	result_array := make([]int, len(A)+len(B))
+
+	// Perform the parallel merge
+	AssymMerge(2, A, B, result_array)
+	// Print the result
+	fmt.Println("Merged array:", result_array)
+	for i := 0; i < len(result_array); i++ {
+		if res_array[i] != result_array[i] {
 			t.Errorf("Array not sorted")
-			fmt.Println(I[i-1], I[i])
+			fmt.Println(result_array[i-1], result_array[i])
 		}
 	}
 }
@@ -92,7 +147,7 @@ func TestTimeTakingBasicParallelMergeSort(t *testing.T) {
 		sub_recorded_times := make([]int64, 10)
 		for i := 0; i < 10; i++ {
 			// get n random numbers
-			n := 100
+			n := 10000
 			I := make([]int, n)
 			for i := 0; i < n; i++ {
 				I[i] = rand.Intn(n)
@@ -105,7 +160,8 @@ func TestTimeTakingBasicParallelMergeSort(t *testing.T) {
 			wg.Add(1)
 			// call the parallel merge sort
 			now := time.Now()
-			Basic_Parallel_mergesort(I, S, &wg, 0, max_depth)
+			resultCh := make(chan int)
+			Basic_Parallel_Mergesort_comparisons(I, S, 0, max_depth, resultCh)
 			sub_recorded_times[i-1] = time.Since(now).Nanoseconds()
 			for i := 1; i < n; i++ {
 				if I[i-1] > I[i] {
@@ -131,7 +187,6 @@ func TestParallelMerge(t *testing.T) {
 
 	// Perform the parallel merge
 	result := Parallel_merge(A, B, result_array, p)
-
 	// Print the result
 	fmt.Println("Merged array:", result)
 	for i := 0; i < len(result); i++ {
