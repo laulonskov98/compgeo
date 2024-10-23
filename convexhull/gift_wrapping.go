@@ -1,5 +1,7 @@
 package convexhull
 
+import "fmt"
+
 // GiftWrappingUpperHull computes the upper hull of a set of points using the Gift Wrapping (Jarvis March) algorithm.
 func GIFT_CH(points []Point) []Point {
 	if len(points) < 2 {
@@ -17,6 +19,7 @@ func GIFT_CH(points []Point) []Point {
 
 	// Initialize the hull with the starting point.
 	hull := []Point{points[start]}
+	fmt.Println("starthull", hull)
 	p := start
 
 	// Step 2: Iteratively find the next point that makes the smallest angle (most counter-clockwise turn).
@@ -35,6 +38,7 @@ func GIFT_CH(points []Point) []Point {
 			break
 		}
 		hull = append(hull, points[next])
+		fmt.Println("stats at append: ", hull, next, p)
 		p = next
 
 		// Break if we've wrapped around back to the starting point or if we reach the rightmost point.

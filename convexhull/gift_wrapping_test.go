@@ -1,6 +1,7 @@
 package convexhull
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -33,9 +34,10 @@ func TestSimpleGIFT_CH(t *testing.T) {
 	// Compute the upper hull
 	hull2 := GIFT_CH(points2)
 
+	fmt.Println(hull2, expected_results2)
 	for i, p := range hull2 {
 		if p != expected_results2[i] {
-			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", points2[i].X, points2[i].Y, p.X, p.Y)
+			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results2[i].X, expected_results2[i].Y, p.X, p.Y)
 		}
 	}
 
@@ -51,7 +53,7 @@ func TestSimpleGIFT_CH(t *testing.T) {
 
 	for i, p := range hull3 {
 		if p != expected_results3[i] {
-			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", points3[i].X, points3[i].Y, p.X, p.Y)
+			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results3[i].X, expected_results3[i].Y, p.X, p.Y)
 		}
 	}
 

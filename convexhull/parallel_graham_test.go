@@ -1,14 +1,14 @@
 package convexhull
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestParallelGrahamScan(t *testing.T) {
 	// Test case 1: A basic example with a few points
 	points := []Point{
-		{0, 3}, {2, 3}, {1, 1}, {2, 1}, {3, 0},
-		{0, 0}, {3, 3},
+		{0, 0}, {3, 3}, {0, 3}, {2, 3}, {1, 1}, {2, 1}, {3, 0},
 	}
 	expected_results := []Point{
 		{0, 0}, {3, 0}, {3, 3},
@@ -17,6 +17,7 @@ func TestParallelGrahamScan(t *testing.T) {
 	// Compute the upper hull
 	hull := PAR_GS(points, 4)
 
+	fmt.Println(hull, expected_results)
 	for i, p := range hull {
 		if p != expected_results[i] {
 			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results[i].X, expected_results[i].Y, p.X, p.Y)
@@ -31,11 +32,11 @@ func TestParallelGrahamScan(t *testing.T) {
 		{0, 0}, {2, 0}, {1, 2},
 	}
 	// Compute the upper hull
-	hull2 := PAR_GS(points, 42)
+	hull2 := PAR_GS(points2, 4)
 
 	for i, p := range hull2 {
 		if p != expected_results2[i] {
-			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", points2[i].X, points2[i].Y, p.X, p.Y)
+			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results2[i].X, expected_results2[i].Y, p.X, p.Y)
 		}
 	}
 
@@ -47,11 +48,11 @@ func TestParallelGrahamScan(t *testing.T) {
 		{0, 0}, {3, 3},
 	}
 
-	hull3 := PAR_GS(points, 43)
+	hull3 := PAR_GS(points3, 4)
 
 	for i, p := range hull3 {
 		if p != expected_results3[i] {
-			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", points3[i].X, points3[i].Y, p.X, p.Y)
+			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results3[i].X, expected_results3[i].Y, p.X, p.Y)
 		}
 	}
 
@@ -60,7 +61,7 @@ func TestParallelGrahamScan(t *testing.T) {
 		{0, 0},
 	}
 
-	hull4 := PAR_GS(points, 44)
+	hull4 := PAR_GS(points4, 4)
 
 	for i, p := range hull4 {
 		if p != points4[i] {

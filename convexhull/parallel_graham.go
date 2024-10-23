@@ -1,7 +1,8 @@
 package convexhull
 
 import (
-	"fmt"
+	"math"
+	"sort"
 	"sync"
 )
 
@@ -12,9 +13,18 @@ func PAR_GS(points []Point, p int) []Point {
 		return points // No convex hull possible with less than 3 points.
 	}
 
+	// sort points by x coordinate
+	sort.Slice(points, func(i, j int) bool {
+		if points[i].X == points[j].X {
+			return points[i].Y < points[j].Y
+		}
+		return points[i].X < points[j].X
+	})
+
 	// Step 1: Split S into p equal-sized arrays, S1, S2, ..., Sp
 	chunkSize := (n + p - 1) / p // Calculate the size of each chunk
 	subsets := make([][]Point, 0, p)
+
 	for i := 0; i < n; i += chunkSize {
 		end := i + chunkSize
 		if end > n {
@@ -39,6 +49,7 @@ func PAR_GS(points []Point, p int) []Point {
 		wg.Wait()
 		close(hullCh)
 	}()
+	// sort the upper hulls by the x coordinate of the last point
 
 	// Collect the upper hulls.
 	var upperHulls [][]Point
@@ -46,44 +57,82 @@ func PAR_GS(points []Point, p int) []Point {
 		upperHulls = append(upperHulls, hull)
 	}
 
+	sortRowsByFirstPointX(upperHulls)
+
 	// Step 3: Merge the upper hulls using tangents
-	mergedHull := upperHulls[0]
-	for i := 1; i < len(upperHulls); i++ {
-		mergedHull = mergeHulls(mergedHull, upperHulls[i])
+	mergedHull := make([]Point, 0, n)
+	i := 0
+	for i < p {
+		min_rotation := math.MaxFloat32
+		min_index := -1
+		min_point_i, min_point_j := Point{X: math.MaxFloat32, Y: math.MaxFloat32}, Point{X: math.MaxFloat32, Y: math.MaxFloat32}
+		for j := i + 1; j < p; j++ {
+			// Find the tangent with the smallest rotation
+			point1, point2 := findUpperTangent(upperHulls[i], upperHulls[j])
+			angle := computeAngle(point1, point2)
+			if angle <= min_rotation {
+				min_rotation = angle
+				min_index = j
+				min_point_i = point1
+				min_point_j = point2
+			}
+		}
+
+		if min_index == -1 {
+			break
+		}
+
+		if i == 0 {
+			mergedHull = append(mergedHull, min_point_i)
+		}
+		mergedHull = append(mergedHull, min_point_j)
+		i = min_index
 	}
 
 	return mergedHull
 }
 
-// mergeHulls merges two upper hulls by finding the tangent and connecting the two hulls.
-func mergeHulls(hull1, hull2 []Point) []Point {
-	// We need to find the left tangent of hull1 and the right tangent of hull2.
-	// We will use a simple linear scan to find these tangents.
-	i, j := len(hull1)-1, 0
-	fmt.Println(hull1, hull2)
-	// Find the tangents
-	for {
-		changed := false
+// findUpperTangent finds the upper tangent between two convex hulls Ui and Uj.
+// Each hull is represented as a slice of Points, ordered from left to right.
+func findUpperTangent(Ui, Uj []Point) (Point, Point) {
+	i := len(Ui) - 1 // Start with the rightmost point of Ui
+	j := 0           // Start with the leftmost point of Uj
 
-		// Check if we need to adjust the i index (left tangent of hull1)
-		if i > 0 && orientation(hull1[i-1], hull1[i], hull2[j]) <= 0 {
-			i--
-			changed = true
+	changed := true
+	for changed {
+		changed = false
+		// Adjust Ui
+		for {
+			nextI := (i - 1 + len(Ui)) % len(Ui)
+			if orientation(Ui[nextI], Uj[j], Ui[i]) > 0 || (orientation(Ui[nextI], Uj[j], Ui[i]) == 0 && Ui[i].X > Uj[j].X) {
+				i = nextI
+				changed = true
+			} else {
+				break
+			}
 		}
+		// Adjust U
+		for {
+			nextJ := (j + 1) % len(Uj)
 
-		// Check if we need to adjust the j index (right tangent of hull2)
-		if j < len(hull2)-1 && orientation(hull1[i], hull2[j], hull2[j+1]) <= 0 {
-			j++
-			changed = true
-		}
-
-		// If no changes were made, we have found the tangents.
-		if !changed {
-			break
+			if orientation(Ui[i], Uj[nextJ], Uj[j]) > 0 || (orientation(Ui[i], Uj[nextJ], Uj[j]) == 0 && Uj[j].X > Uj[nextJ].X) {
+				j = nextJ
+				changed = true
+			} else {
+				break
+			}
 		}
 	}
+	// The tangent is between Ui[i] and Uj[j]
+	return Ui[i], Uj[j]
+}
 
-	// Combine hull1 and hull2 along the tangent.
-	mergedHull := append(hull1[:i+1], hull2[j:]...)
-	return mergedHull
+func sortRowsByFirstPointX(points [][]Point) {
+	sort.Slice(points, func(i, j int) bool {
+		// Check if the rows are non-empty
+		if len(points[i]) == 0 || len(points[j]) == 0 {
+			return false
+		}
+		return points[i][len(points[i])-1].X < points[j][len(points[j])-1].X
+	})
 }

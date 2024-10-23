@@ -1,6 +1,9 @@
 package convexhull
 
-import "sort"
+import (
+	"math"
+	"sort"
+)
 
 func INC_CH(points []Point) []Point {
 	if len(points) < 3 {
@@ -44,4 +47,8 @@ func orientation(a, b, c Point) float64 {
 // crossProduct computes the cross product of vectors AB and AC.
 func crossProduct(a, b, c Point) float64 {
 	return (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
+}
+
+func computeAngle(p1, p2 Point) float64 {
+	return math.Atan2(p2.Y-p1.Y, p2.X-p1.X)
 }
