@@ -364,23 +364,26 @@ func count_comparison_parallel_ch(point_generator func(int) []convexhull.Point, 
 	}
 }
 
-func count_comparisons_increasing_p(point_generator func(int) []convexhull.Point, hull_algorithm func([]convexhull.Point, int) ([]convexhull.Point, int), processors, stepsize int) {
+func count_comparisons_increasing_p(point_generator func(int) []convexhull.Point, hull_algorithm func([]convexhull.Point, int) ([]convexhull.Point, int), processors int) {
 	recorded_times := make([][]int, processors+1)
-	for p := 1; p < processors+1; p++ {
+	for p := 0; p < processors+1; p++ {
+
 		fmt.Println(p)
 		for j := 0; j < 10; j++ {
-			points := point_generator(750000)
-			_, comparions := hull_algorithm(points, p*stepsize)
+			inputval := int(math.Pow(2, float64(p)))
+			fmt.Println(inputval)
+			points := point_generator(1000000)
+			_, comparions := hull_algorithm(points, inputval)
 			recorded_times[p] = append(recorded_times[p], comparions)
 		}
 	}
 
 	for i := 1; i < processors+1; i++ {
 		for j := 0; j < 10; j++ {
-			fmt.Println("(", i, ",", recorded_times[i][j], ")")
+			fmt.Println("(", int(math.Pow(2, float64(i))), ",", recorded_times[i][j], ")")
 		}
 	}
 }
 func main() {
-	count_comparisons_increasing_p(convexhull.Generate_polynomial_inputs, convexhull.PAR_GS_comparison, 40, 2)
+	count_comparisons_increasing_p(convexhull.Generate_polynomial_inputs, convexhull.PAR_GS_comparison, 14)
 }

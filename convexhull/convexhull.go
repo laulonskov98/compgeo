@@ -63,6 +63,54 @@ func INC_CH_comparison(points []Point) ([]Point, int, int) {
 
 	return upperHull, comparison_scan, comparisons_sort
 }
+func INC_CH_comparison2(points []Point) ([]Point, int, int) {
+	if len(points) < 3 {
+		// Convex hull is not defined for fewer than 3 points.
+		return points, 0, 0
+	}
+
+	comparisons_sort := 0
+	comparison_scan := 0
+
+	// Sorting the points
+	sort.Slice(points, func(i, j int) bool {
+		comparisons_sort++
+		return points[i].X < points[j].X
+	})
+
+	// Initialize upper hull
+	upperHull := []Point{}
+
+	// Build upper hull
+	for i := 0; i < len(points); i++ {
+		// Optionally increment counter for loop control comparison
+		// comparison_scan++ // For i < len(points)
+
+		// Inner loop to maintain the upper hull property
+		for {
+			// First comparison: len(upperHull) >= 2
+			comparison_scan++
+			if len(upperHull) < 2 {
+				break
+			}
+
+			// Second comparison: orientation >= 0
+			comparison_scan++
+			orient := orientationCount(upperHull[len(upperHull)-2], upperHull[len(upperHull)-1], points[i], &comparison_scan)
+			if orient < 0 {
+				break
+			}
+
+			// Remove the last point
+			upperHull = upperHull[:len(upperHull)-1]
+		}
+
+		// Append the current point
+		upperHull = append(upperHull, points[i])
+	}
+
+	return upperHull, comparison_scan, comparisons_sort
+}
 
 // orientation returns:
 // >0 if the sequence of points a->b->c is counter-clockwise,
@@ -72,6 +120,12 @@ func orientation(a, b, c Point) float64 {
 	result := (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
 
 	return result
+}
+
+func orientationCount(p, q, r Point, counter *int) float64 {
+	*counter++
+	// Compute the orientation value
+	return (q.Y-p.Y)*(r.X-q.X) - (q.X-p.X)*(r.Y-q.Y)
 }
 
 func computeAngle(p1, p2 Point) float64 {

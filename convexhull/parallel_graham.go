@@ -141,7 +141,7 @@ func PAR_GS_comparison(points []Point, p int) ([]Point, int) {
 		wg.Add(1)
 		go func(subset []Point) {
 			defer wg.Done()
-			points, scan, sort := INC_CH_comparison(subset)
+			points, scan, sort := INC_CH_comparison2(subset)
 			hullCh <- HullResult{points, scan, sort}
 		}(subset)
 	}
@@ -178,11 +178,11 @@ func PAR_GS_comparison(points []Point, p int) ([]Point, int) {
 		for j := i + 1; j < p; j++ {
 			highestcompare_inch++
 			// Find the tangent with the smallest rotation
-			point1_idx, point2_idx, binarycomps := findUpperTangentBinaryComp(upperHulls[i], upperHulls[j])
-			highestcompare_inch += binarycomps
+			point1_idx, point2_idx := findUpperTangentBinaryComp(upperHulls[i], upperHulls[j], &highestcompare_inch)
 
 			point1, point2 := upperHulls[i][point1_idx], upperHulls[j][point2_idx]
 			angle := computeAngle(point1, point2)
+			highestcompare_inch++
 
 			if angle >= min_rotation {
 				highestcompare_inch++
@@ -209,7 +209,7 @@ func PAR_GS_comparison(points []Point, p int) ([]Point, int) {
 		// Collect points in reverse order
 		for upperHulls[i][min_point1_idx-min_point_incrementer] != mergedHull[len(mergedHull)-1] &&
 			upperHulls[i][min_point1_idx-min_point_incrementer].X < min_point_j.X {
-			highestcompare_inch++
+			highestcompare_inch += 2
 			points_to_append = append(points_to_append, upperHulls[i][min_point1_idx-min_point_incrementer])
 			min_point_incrementer++
 		}
@@ -379,10 +379,9 @@ func sortRowsByFirstPointX(points [][]Point) {
 	})
 }
 
-func findTangentOnUiComp(Ui []Point, Uj_j Point) (int, int) {
+func findTangentOnUiComp(Ui []Point, Uj_j Point, counter *int) int {
 	low := 0
 	high := len(Ui) - 1
-	compares := 0
 
 	for {
 		mid := (low + high) / 2
@@ -397,9 +396,8 @@ func findTangentOnUiComp(Ui []Point, Uj_j Point) (int, int) {
 			midNext = n - 1
 		}
 
-		orientPrev := orientation(Ui[mid], Uj_j, Ui[midPrev])
-		orientNext := orientation(Ui[mid], Uj_j, Ui[midNext])
-		compares += 1
+		orientPrev := orientationCount(Ui[mid], Uj_j, Ui[midPrev], counter)
+		orientNext := orientationCount(Ui[mid], Uj_j, Ui[midNext], counter)
 
 		if orientPrev > 0 {
 			// Left neighbor is above the line, move left
@@ -409,20 +407,19 @@ func findTangentOnUiComp(Ui []Point, Uj_j Point) (int, int) {
 			low = mid + 1
 		} else {
 			// Found the tangent point
-			return mid, compares
+			return mid
 		}
 
 		if low > high {
 			// Converged to the best candidate
-			return mid, compares
+			return mid
 		}
 	}
 }
 
 // findTangentOnUj finds the index j on Uj such that the line from Ui_i to Uj[j]
 // is the upper tangent to Uj.
-func findTangentOnUjComp(Uj []Point, Ui_i Point) (int, int) {
-	compares := 0
+func findTangentOnUjComp(Uj []Point, Ui_i Point, counter *int) int {
 	low := 0
 	high := len(Uj) - 1
 
@@ -438,10 +435,9 @@ func findTangentOnUjComp(Uj []Point, Ui_i Point) (int, int) {
 		if midNext >= n {
 			midNext = n - 1
 		}
-		compares += 1
 
-		orientPrev := orientation(Uj[mid], Ui_i, Uj[midPrev])
-		orientNext := orientation(Uj[mid], Ui_i, Uj[midNext])
+		orientPrev := orientationCount(Uj[mid], Ui_i, Uj[midPrev], counter)
+		orientNext := orientationCount(Uj[mid], Ui_i, Uj[midNext], counter)
 
 		if orientPrev < 0 {
 			// Left neighbor is above the line (since we invert the orientation), move left
@@ -451,34 +447,31 @@ func findTangentOnUjComp(Uj []Point, Ui_i Point) (int, int) {
 			low = mid + 1
 		} else {
 			// Found the tangent point
-			return mid, compares
+			return mid
 		}
 
 		if low > high {
 			// Converged to the best candidate
-			return mid, compares
+			return mid
 		}
 	}
 }
 
 // findUpperTangent finds the upper tangent between two convex hulls Ui and Uj.
 // Each hull is represented as a slice of Points, ordered from left to right.
-func findUpperTangentBinaryComp(Ui, Uj []Point) (int, int, int) {
-	compares := 0
+func findUpperTangentBinaryComp(Ui, Uj []Point, counter *int) (int, int) {
 	// Initial indices
 	i := len(Ui) - 1 // Start with the rightmost point of Ui
 	j := 0           // Start with the leftmost point of Uj
-	icompare, jcompare := 0, 0
 	for {
 		prevI := i
 		prevJ := j
 
 		// Find the tangent on Uj for Ui[i]
-		j, jcompare = findTangentOnUjComp(Uj, Ui[i])
+		j = findTangentOnUjComp(Uj, Ui[i], counter)
 
 		// Find the tangent on Ui for Uj[j]
-		i, icompare = findTangentOnUiComp(Ui, Uj[j])
-		compares += jcompare + icompare
+		i = findTangentOnUiComp(Ui, Uj[j], counter)
 
 		// Check if indices have stabilized
 		if i == prevI && j == prevJ {
@@ -487,5 +480,5 @@ func findUpperTangentBinaryComp(Ui, Uj []Point) (int, int, int) {
 	}
 
 	// The tangent is between Ui[i] and Uj[j]
-	return i, j, compares
+	return i, j
 }
