@@ -1,17 +1,20 @@
 package convexhull
 
-import "fmt"
+import (
+	"math"
+)
 
 // GiftWrappingUpperHull computes the upper hull of a set of points using the Gift Wrapping (Jarvis March) algorithm.
 func GIFT_CH(points []Point) []Point {
 	if len(points) < 2 {
-		// Not enough points to form a hull.
-		return points
+		return points // Not enough points to form a hull.
 	}
 
+	comparisons_count := 0
 	// Step 1: Find the leftmost point as the starting point.
 	start := 0
 	for i := 1; i < len(points); i++ {
+		comparisons_count++
 		if points[i].X < points[start].X || (points[i].X == points[start].X && points[i].Y < points[start].Y) {
 			start = i
 		}
@@ -19,33 +22,96 @@ func GIFT_CH(points []Point) []Point {
 
 	// Initialize the hull with the starting point.
 	hull := []Point{points[start]}
-	fmt.Println("starthull", hull)
+	existing_points := make(map[Point]bool)
 	p := start
-
-	// Step 2: Iteratively find the next point that makes the smallest angle (most counter-clockwise turn).
+	last_round_orient := math.MaxFloat64
+	// Step 2: Iteratively find the next point that makes the most counter-clockwise turn.
 	for {
 		next := -1
+		final_orient := math.MaxFloat64
 		for i := 0; i < len(points); i++ {
 			if i == p {
 				continue
 			}
-			if next == -1 || orientation(points[p], points[next], points[i]) > 0 || (orientation(points[p], points[next], points[i]) == 0 && points[i].X > points[next].X) {
-				next = i
+			comparisons_count++
+			if next == -1 {
+				next = i // First candidate
+			} else {
+				comparisons_count++
+				orient := orientation(points[p], points[next], points[i])
+				if orient > 0 || (orient == 0 && points[i].X > points[next].X) {
+					next = i
+					final_orient = orient
+				}
 			}
 		}
-		// If we are going to the left, stop since we're only interested in the upper hull.
-		if points[next].X < points[p].X {
+		// Stop if we've come back to the starting point
+		if points[next].X < hull[len(hull)-1].X || existing_points[points[next]] || (last_round_orient == 0 && final_orient == 0) {
 			break
 		}
-		hull = append(hull, points[next])
-		fmt.Println("stats at append: ", hull, next, p)
-		p = next
 
-		// Break if we've wrapped around back to the starting point or if we reach the rightmost point.
-		if points[p].X > points[start].X && points[p].Y > points[start].Y {
-			break
-		}
+		// Append the next point to the hull
+		hull = append(hull, points[next])
+		existing_points[points[next]] = true
+		p = next
+		last_round_orient = final_orient
 	}
 
 	return hull
+}
+
+// GiftWrappingUpperHull computes the upper hull of a set of points using the Gift Wrapping (Jarvis March) algorithm.
+func GIFT_CH_comparison(points []Point) ([]Point, int) {
+	if len(points) < 2 {
+		return points, 0 // Not enough points to form a hull.
+	}
+
+	comparisons_count := 0
+	// Step 1: Find the leftmost point as the starting point.
+	start := 0
+	for i := 1; i < len(points); i++ {
+		comparisons_count++
+		if points[i].X < points[start].X || (points[i].X == points[start].X && points[i].Y < points[start].Y) {
+			start = i
+		}
+	}
+
+	// Initialize the hull with the starting point.
+	hull := []Point{points[start]}
+	existing_points := make(map[Point]bool)
+	p := start
+	last_round_orient := math.MaxFloat64
+	// Step 2: Iteratively find the next point that makes the most counter-clockwise turn.
+	for {
+		next := -1
+		final_orient := math.MaxFloat64
+		for i := 0; i < len(points); i++ {
+			if i == p {
+				continue
+			}
+			comparisons_count++
+			if next == -1 {
+				next = i // First candidate
+			} else {
+				comparisons_count++
+				orient := orientation(points[p], points[next], points[i])
+				if orient > 0 || (orient == 0 && points[i].X > points[next].X) {
+					next = i
+					final_orient = orient
+				}
+			}
+		}
+		// Stop if we've come back to the starting point
+		if points[next].X < hull[len(hull)-1].X || existing_points[points[next]] || (last_round_orient == 0 && final_orient == 0) {
+			break
+		}
+
+		// Append the next point to the hull
+		hull = append(hull, points[next])
+		existing_points[points[next]] = true
+		p = next
+		last_round_orient = final_orient
+	}
+
+	return hull, comparisons_count
 }

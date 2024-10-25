@@ -1,6 +1,7 @@
 package convexhull
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -11,15 +12,43 @@ func TestGrahamScan(t *testing.T) {
 		{0, 0}, {3, 3},
 	}
 	expected_results := []Point{
-		{0, 0}, {3, 0}, {3, 3},
+		{0, 0}, {0, 3}, {3, 3}, {3, 0},
 	}
 
 	// Compute the upper hull
 	hull := INC_CH(points)
 
+	fmt.Println(hull, expected_results)
 	for i, p := range hull {
 		if p != expected_results[i] {
 			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results[i].X, expected_results[i].Y, p.X, p.Y)
+		}
+	}
+
+	points_x := []Point{
+		{0, 0}, // Bottom-left corner
+		{2, 2}, // Interior point
+		{4, 1}, // Middle point on the right
+		{6, 0}, // Bottom-right corner
+		{1, 3}, // Upper-left point
+		{5, 4}, // Upper-right point
+		{3, 5}, // Top-most point
+		{3, 1}, // Interior point near the middle
+	}
+
+	expected_results_x := []Point{
+		{0, 0}, // Starting from the leftmost point
+		{1, 3}, // Move upwards to the upper-left
+		{3, 5}, // Top-most point
+		{5, 4}, // Upper-right point
+		{6, 0}, // Rightmost point
+	}
+
+	hull_x := INC_CH(points_x)
+	fmt.Println(hull_x, expected_results_x)
+	for i, p := range hull_x {
+		if p != expected_results_x[i] {
+			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", expected_results_x[i].X, expected_results_x[i].Y, p.X, p.Y)
 		}
 	}
 
@@ -28,7 +57,7 @@ func TestGrahamScan(t *testing.T) {
 		{0, 0}, {1, 2}, {2, 0}, {1, 1},
 	}
 	expected_results2 := []Point{
-		{0, 0}, {2, 0}, {1, 2},
+		{0, 0}, {1, 2}, {2, 0},
 	}
 	// Compute the upper hull
 	hull2 := INC_CH(points2)
@@ -65,6 +94,31 @@ func TestGrahamScan(t *testing.T) {
 	for i, p := range hull4 {
 		if p != points4[i] {
 			t.Errorf("Expected: (%.1f, %.1f), Got: (%.1f, %.1f)", points4[i].X, points4[i].Y, p.X, p.Y)
+		}
+	}
+
+}
+
+func TestSquareGrahamScan(t *testing.T) {
+	points := Generate_square_inputs(1000)
+	hull := INC_CH(points)
+	if len(hull) == 0 {
+		t.Errorf("No points in the convex hull")
+	}
+
+	hull_parallel := PAR_GS(points, 4)
+
+	fmt.Println(hull)
+
+	fmt.Println(hull_parallel)
+	fmt.Println(len(hull), len(hull_parallel))
+	if len(hull) != len(hull_parallel) {
+		t.Errorf("The number of points in the convex hulls are different")
+	}
+
+	for i := 0; i < len(hull); i++ {
+		if hull[i] != hull_parallel[i] {
+			t.Errorf("The points in the convex hulls are different")
 		}
 	}
 

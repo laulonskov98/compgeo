@@ -3,6 +3,7 @@ package convexhull
 import (
 	"math"
 	"math/rand"
+	"time"
 )
 
 // Point represents a point in 2D space
@@ -47,7 +48,66 @@ func Generate_polynomial_inputs(n int) []Point {
 	for i := 0; i < n; i++ {
 		x := rand.Float64()
 		points[i].X = x
-		points[i].Y = -x * x
+		points[i].Y = -(x * x)
+	}
+
+	return points
+}
+
+func Generate_n_side_polygon(sides, n int) []Point {
+	var points []Point
+	radius := rand.Float64()
+	angleIncrement := 2 * math.Pi / float64(sides)
+	for i := 0; i < sides; i++ {
+		angle := angleIncrement * float64(i)
+		x := radius * math.Cos(angle)
+		y := radius * math.Sin(angle)
+		points = append(points, Point{X: x, Y: y})
+	}
+	return generateRandomPointsInPolygon(points, n)
+}
+
+// Generate random points inside the polygon
+func generateRandomPointsInPolygon(vertices []Point, n int) []Point {
+	var points []Point
+	sides := len(vertices)
+	if sides < 3 {
+		return points // Not a polygon
+	}
+
+	// Calculate the center of the polygon
+	var centerX, centerY float64
+	for _, v := range vertices {
+		centerX += v.X
+		centerY += v.Y
+	}
+	centerX /= float64(sides)
+	centerY /= float64(sides)
+	center := Point{X: centerX, Y: centerY}
+
+	rand.Seed(time.Now().UnixNano())
+
+	for i := 0; i < n; i++ {
+		// Randomly choose a triangle (uniformly)
+		j := rand.Intn(sides)
+		nextJ := (j + 1) % sides
+		triangle := [3]Point{vertices[j], vertices[nextJ], center}
+
+		// Generate a random point inside the triangle
+		r1 := rand.Float64()
+		r2 := rand.Float64()
+
+		// Adjust r1 and r2 to ensure the point lies inside the triangle
+		if r1+r2 > 1 {
+			r1 = 1 - r1
+			r2 = 1 - r2
+		}
+
+		// Compute the point using barycentric coordinates
+		x := r1*triangle[0].X + r2*triangle[1].X + (1-r1-r2)*triangle[2].X
+		y := r1*triangle[0].Y + r2*triangle[1].Y + (1-r1-r2)*triangle[2].Y
+
+		points = append(points, Point{X: x, Y: y})
 	}
 
 	return points
